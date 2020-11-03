@@ -1,0 +1,1 @@
+export { CharacterCanvas } from './CharacterCanvas';

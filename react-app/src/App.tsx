@@ -1,8 +1,9 @@
 import React from 'react';
+import { CharacterCanvas } from './components';
 
 function App() {
     return (
-        <p>test</p>
+        <CharacterCanvas />
     );
 }
 
