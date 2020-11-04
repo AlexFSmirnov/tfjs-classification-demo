@@ -1,10 +1,24 @@
 import React from 'react';
 import { loadLayersModel, tensor, LayersModel, Tensor } from '@tensorflow/tfjs';
-import { CharacterCanvas } from './components';
-import { IMAGE_SIZE, CLASSES } from './constants';
+import { normalizePrediction } from './utils/normalizePrediction';
+import { getEmptyPrediction } from './utils/getEmptyPrediction';
+import { CharacterCanvas, PredictionMap } from './components';
+import { IMAGE_SIZE } from './constants';
+import { AppWrapper, Candidate, LoadingText } from './style';
 
-class App extends React.Component {
+export interface AppState {
+    prediction: Record<string, number>;
+    topCandidate: string;
+}
+
+class App extends React.Component<{}, AppState> {
     private model: LayersModel | null = null;
+    private prediction: Record<string, number> = {};
+
+    state = {
+        prediction: getEmptyPrediction(),
+        topCandidate: '?',
+    };
 
     componentDidMount() {
         this.loadModel();
@@ -12,10 +26,10 @@ class App extends React.Component {
 
     loadModel = async () => {
         this.model = await loadLayersModel(`${process.env.PUBLIC_URL}/model/model.json`);
-        console.log('Model loaded');
+        this.forceUpdate();
     };
 
-    predict = async (pixels: number[][][]) => {
+    predict = (pixels: number[][][]) => {
         if (!this.model) {
             return;
         }
@@ -23,13 +37,10 @@ class App extends React.Component {
         const inputTensor = tensor([pixels], [1, IMAGE_SIZE, IMAGE_SIZE, 3]);
 
         const result = this.model.predict(inputTensor) as Tensor;
-        const predictionArray = Array.from(result.dataSync());
+        const { topCandidate, prediction } = normalizePrediction(Array.from(result.dataSync()));
 
-        const maxProb = Math.max(...predictionArray);
-        const idx = predictionArray.indexOf(maxProb);
-        const hexVal = CLASSES[idx].split('_')[CLASSES[idx].split('_').length - 1];
-        const val = String.fromCharCode(parseInt(hexVal, 16));
-        console.log(`${hexVal}: ${val}   (${maxProb})`);
+        this.prediction = prediction;
+        this.setState({ topCandidate });
     };
 
     handleCanvasChange = (pixels: number[][][] | null) => {
@@ -40,9 +51,26 @@ class App extends React.Component {
         this.predict(pixels);
     };
 
+    handleCanvasPointerUp = () => this.setState({ prediction: this.prediction });
+
     render() {
+        const { prediction, topCandidate } = this.state;
+
         return (
-            <CharacterCanvas onChange={this.handleCanvasChange} />
+            <AppWrapper>
+                {this.model
+                    ? (
+                        <>
+                            <Candidate>{topCandidate}</Candidate>
+                            <CharacterCanvas onChange={this.handleCanvasChange} onPointerUp={this.handleCanvasPointerUp} />
+                            <PredictionMap prediction={prediction} />
+                        </>
+                    )
+                    : (
+                        <LoadingText>Model loading...</LoadingText>
+                    )
+                }
+            </AppWrapper>
         );
     }
 }

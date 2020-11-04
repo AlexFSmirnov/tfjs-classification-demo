@@ -3,13 +3,17 @@ import { IMAGE_SIZE, CANVAS_LINE_WIDTH, CANVAS_BACKGROUND_COLOR, CANVAS_SCALE } 
 import { Button } from '../Button';
 import { CharacterCanvasWrapperElement, CanvasElement } from './style';
 
+const CANVAS_UPDATE_TIMEOUT = 200;
+
 export interface CharacterCanvasProps {
     onChange?: (pixels: number[][][] | null) => void;
+    onPointerUp?: () => void;
 }
 
-const CharacterCanvas: React.FC<CharacterCanvasProps> = ({ onChange }) => {
+const CharacterCanvas: React.FC<CharacterCanvasProps> = ({ onChange, onPointerUp }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const previousPointerPosition = useRef<{ x: number, y: number } | null>(null);
+    const onChangeLastCalled = useRef<number>(0);
 
     const clear = () => {
         const { current: canvas } = canvasRef;
@@ -42,7 +46,7 @@ const CharacterCanvas: React.FC<CharacterCanvasProps> = ({ onChange }) => {
             const row: number[][] = [];
             for (let x = 0; x < IMAGE_SIZE; ++x) {
                 const [r, g, b] = ctx.getImageData(x, y, 1, 1).data;
-                row.push([r, g, b]);
+                row.push([r / 255, g / 255, b / 255]);
             }
             result.push(row);
         }
@@ -80,12 +84,20 @@ const CharacterCanvas: React.FC<CharacterCanvasProps> = ({ onChange }) => {
             }
         }
 
-        if (onChange) {
+        const now = (new Date()).getTime();
+        if (onChange && now - onChangeLastCalled.current > CANVAS_UPDATE_TIMEOUT) {
+            onChangeLastCalled.current = now;
             onChange(getPixels());
         }
     };
 
-    const handlePointerUp = () => (previousPointerPosition.current = null);
+    const handlePointerUp = () => {
+        previousPointerPosition.current = null
+
+        if (onPointerUp) {
+            onPointerUp();
+        }
+    };
 
     const canvasProps = {
         ref: canvasRef,
