@@ -8,7 +8,7 @@
       "type": "image/svg"
     }
   ],
-  "start_url": ".",
+  "start_url": "/tfjs-classification-demo/",
   "display": "standalone",
   "theme_color": "#000000",
   "background_color": "#ffffff"
