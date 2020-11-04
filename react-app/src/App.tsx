@@ -13,7 +13,6 @@ export interface AppState {
 
 class App extends React.Component<{}, AppState> {
     private model: LayersModel | null = null;
-    private prediction: Record<string, number> = {};
 
     state = {
         prediction: getEmptyPrediction(),
@@ -39,8 +38,7 @@ class App extends React.Component<{}, AppState> {
         const result = this.model.predict(inputTensor) as Tensor;
         const { topCandidate, prediction } = normalizePrediction(Array.from(result.dataSync()));
 
-        this.prediction = prediction;
-        this.setState({ topCandidate });
+        this.setState({ topCandidate, prediction });
     };
 
     handleCanvasChange = (pixels: number[][][] | null) => {
@@ -51,8 +49,6 @@ class App extends React.Component<{}, AppState> {
         this.predict(pixels);
     };
 
-    handleCanvasPointerUp = () => this.setState({ prediction: this.prediction });
-
     render() {
         const { prediction, topCandidate } = this.state;
 
@@ -62,7 +58,7 @@ class App extends React.Component<{}, AppState> {
                     ? (
                         <>
                             <Candidate>{topCandidate}</Candidate>
-                            <CharacterCanvas onChange={this.handleCanvasChange} onPointerUp={this.handleCanvasPointerUp} />
+                            <CharacterCanvas onChange={this.handleCanvasChange} />
                             <PredictionMap prediction={prediction} />
                         </>
                     )
